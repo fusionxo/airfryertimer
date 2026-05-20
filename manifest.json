@@ -1,0 +1,16 @@
+{
+  "short_name": "AirFryerTimer",
+  "name": "Air Fryer Pro Multi-Stage Timer",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#0A0A0C",
+  "theme_color": "#FF6B00",
+  "display": "standalone",
+  "orientation": "portrait-primary"
+}

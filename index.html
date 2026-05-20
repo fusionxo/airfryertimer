@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Air Fryer Pro | Multi-Stage Sequential Kitchen Timer</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="An elegant, easy-to-use, multi-stage sequential air fryer timer for preheating, cooking, shaking, and resting. Featuring dark mode glassmorphism and custom sound alarms.">
+  <meta name="theme-color" content="#FF6B00">
+  
+  <!-- PWA Headers & Capability Toggles -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AirFryerTimer">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- GLOBAL SYSTEM REPEATING ALARM CALLOUT BANNER -->
+  <div id="alarmBanner" class="alarm-banner">
+    <div class="alarm-text">
+      <span class="alarm-headline">Cooking Complete! 🍗</span>
+      <span id="alarmRecipeName" class="alarm-sub">Your Air Fryer Presets have finished.</span>
+    </div>
+    <button id="btnAlarmStop" class="btn btn-alarm-stop">DONE / STOP</button>
+  </div>
+
+  <!-- HEADER NAVIGATION BAR -->
+  <header>
+    <div class="logo-container">
+      <img src="icon.svg" alt="Air Fryer Pro logo" class="logo-icon">
+      <h1>Air Fryer Pro</h1>
+    </div>
+    <div class="header-actions">
+      <!-- Ambient sound toggler -->
+      <button id="btnMute" class="btn-icon" title="Mute Sounds">
+        <svg style="width: 18px; height: 18px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+        </svg>
+      </button>
+      
+      <!-- Native system notifications toggler -->
+      <button id="btnNotify" class="btn-icon" title="Enable Background Alerts">
+        <svg style="width: 18px; height: 18px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- MASTER CONTAINER: GRID FOR SIDEBAR AND DASHBOARD -->
+  <div class="app-container">
+    
+    <!-- SIDEBAR: RECIPE MANAGER -->
+    <aside>
+      <div class="glass-card">
+        <div class="card-title-bar">
+          <h2 class="card-title">
+            <svg style="width: 20px; height: 20px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            Recipe Book
+          </h2>
+          <button id="btnCreateRecipe" class="btn btn-primary" title="Create Recipe" style="width: 38px; height: 38px; padding: 0; border-radius: 50%;">
+            <svg style="width: 18px; height: 18px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Recipe Scrolling catalog -->
+        <div id="recipeList" class="recipe-list">
+          <!-- Populated dynamically via app.js -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN BLOCK: TIMER MONITORING BOARD -->
+    <main>
+      
+      <!-- MONITOR CARD: GAUGES, TIME DIGITS, FANS -->
+      <section id="timerCard" class="glass-card timer-hero">
+        
+        <div class="svg-timer-container">
+          <svg viewBox="0 0 360 360">
+            <!-- Neon Gradient Definitions for Gauge Rings -->
+            <defs>
+              <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FFB800" />
+                <stop offset="50%" stop-color="#FF6B00" />
+                <stop offset="100%" stop-color="#FF1E56" />
+              </linearGradient>
+            </defs>
+
+            <!-- Outer Cumulative Progress Gauge (D = 312, R = 154) -->
+            <circle cx="180" cy="180" r="154" class="timer-circle-total" />
+            <circle id="outerProgressRing" cx="180" cy="180" r="154" class="timer-circle-total-progress" stroke-dasharray="967.6" stroke-dashoffset="967.6" />
+
+            <!-- Inner Active Stage Progress Gauge (D = 280, R = 140) -->
+            <circle cx="180" cy="180" r="140" class="timer-circle-bg" />
+            <circle id="innerProgressRing" cx="180" cy="180" r="140" class="timer-circle-progress" stroke-dasharray="879.6" stroke-dashoffset="879.6" />
+          </svg>
+
+          <!-- Central digital clock values -->
+          <div class="timer-display">
+            <span id="stageNameDisplay" class="timer-stage-name">NO RECIPE LOADED</span>
+            <span id="timeDisplay" class="timer-time">00:00</span>
+            <span id="tempDisplay" class="timer-temp">🔥 -- °C</span>
+            
+            <!-- Spinning cooling vortex blade -->
+            <svg class="cooking-fan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+        </div>
+
+        <!-- Controls button suite -->
+        <div class="timer-controls">
+          <!-- Skip back to previous stage -->
+          <button id="btnPrev" class="btn-control-secondary" title="Previous Stage">
+            <svg style="width: 20px; height: 20px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.334 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
+            </svg>
+          </button>
+
+          <!-- Primary Play / Pause bubble -->
+          <button id="btnPlayPause" class="btn-play-pause" title="Start Timer">
+            <svg style="width: 32px; height: 32px; margin-left: 4px;" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </button>
+
+          <!-- Stop / Reset run -->
+          <button id="btnStop" class="btn-control-secondary" title="Stop Cooking / Reset">
+            <svg style="width: 20px; height: 20px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4h16v16H4z" />
+            </svg>
+          </button>
+
+          <!-- Skip forward to next stage -->
+          <button id="btnNext" class="btn-control-secondary" title="Skip/Next Stage">
+            <svg style="width: 20px; height: 20px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11.934 12.8a1 1 0 000-1.6l-5.334-4A1 1 0 005 8v8a1 1 0 001.6.8l5.334-4zM19.934 12.8a1 1 0 000-1.6l-5.334-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.334-4z" />
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- STAGE TIMELINE BAR: TRACKER LAYOUT -->
+      <section class="glass-card timeline-section">
+        <h3 class="card-title" style="margin-bottom: 0.5rem;">
+          <svg style="width: 20px; height: 20px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+          </svg>
+          Cooking Sequence
+        </h3>
+        
+        <!-- Multi-node stage tracker -->
+        <div id="timelineTrack" class="timeline-track">
+          <!-- Populated dynamically via app.js -->
+        </div>
+
+        <!-- Dynamic cooking stats -->
+        <div class="stats-subbar">
+          <div class="stat-item">
+            <span id="stagesCompletedVal" class="stat-val">0/0</span>
+            <span class="stat-lbl">Steps Done</span>
+          </div>
+          <div class="stat-item">
+            <span id="totalElapsedVal" class="stat-val">00:00</span>
+            <span class="stat-lbl">Elapsed Time</span>
+          </div>
+          <div class="stat-item">
+            <span id="totalDurationVal" class="stat-val">00:00</span>
+            <span class="stat-lbl">Total Time</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+  </div>
+
+  <!-- INTERACTIVE CREATOR MODAL DIALOGUE -->
+  <div id="recipeModal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 id="modalTitle" class="modal-title">Create Air Fryer Recipe</h3>
+        <button id="modalClose" class="modal-close" title="Close modal">&times;</button>
+      </div>
+      
+      <form id="recipeForm">
+        <div class="modal-body">
+          <input type="hidden" id="recipeId" value="">
+          
+          <!-- Title Name -->
+          <div class="form-group">
+            <label for="recipeName" class="form-label">Recipe Title</label>
+            <input type="text" id="recipeName" class="form-input" placeholder="e.g. Crispy Garlic Broccoli" required maxlength="36">
+          </div>
+          
+          <!-- Category Select -->
+          <div class="form-group">
+            <label for="recipeCategory" class="form-label">Recipe Category</label>
+            <select id="recipeCategory" class="form-input">
+              <option value="breakfast">🍳 Breakfast / Egg Profiles</option>
+              <option value="poultry">🍗 Poultry / Meats</option>
+              <option value="seafood">🐟 Seafood / Salmon</option>
+              <option value="veggies">🍟 Potatoes & Veggies</option>
+              <option value="bakery">🍰 Bakery / Desserts</option>
+            </select>
+          </div>
+
+          <!-- Sequential Stages Form Manager -->
+          <div class="form-group" style="margin-top: 2rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+              <span class="form-label" style="margin-bottom: 0;">Cooking Stages (Sequential)</span>
+              <button type="button" id="btnAddStageRow" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.25rem;">
+                <svg style="width: 14px; height: 14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2".5 d="M12 4v16m8-8H4" />
+                </svg> Add Step
+              </button>
+            </div>
+
+            <!-- Stage rows container -->
+            <div id="modalStagesContainer" class="modal-stages-list">
+              <!-- Populated dynamically via app.js -->
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="btnCancelModal" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Recipe</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Load Modules -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
