@@ -563,40 +563,27 @@ function triggerStageTransition() {
   const recipe = state.selectedRecipe;
   const nextIndex = state.currentStageIndex + 1;
   
+  // Pause the clock for action required
+  pauseCooking();
+  
+  // Play the loud repeating alarm tune for all steps
+  state.isAlarmActive = true;
+  Audio.playAlarm();
+  
   if (nextIndex < recipe.stages.length) {
-    // ADVANCE TO NEXT STAGE
-    pauseCooking();
-    
-    state.currentStageIndex = nextIndex;
-    state.stageTimeRemaining = recipe.stages[nextIndex].time;
-    
-    // Play distinctive dual tone chime
-    Audio.playTransitionChime();
-    
-    // Send background push message
+    // Intermediate stage completed!
     sendBackgroundNotification(
-      `Next Stage: ${recipe.stages[nextIndex].name}`,
-      `Previous stage completed! Now set to ${recipe.stages[nextIndex].temp}°C.`
+      `Stage Completed: ${recipe.stages[state.currentStageIndex].name} 🔔`,
+      `Time for the next step! Next: ${recipe.stages[nextIndex].name}.`
     );
-    
-    renderTimeline();
-    
-    // Resume auto-run cooking interval
-    startCooking();
+    showAlarmBanner(false);
   } else {
-    // ALL STAGES COMPLETED: ALARM ALERTS!
-    pauseCooking();
-    
-    state.isAlarmActive = true;
-    Audio.playAlarm();
-    
-    // Trigger notification popup
+    // All stages completed!
     sendBackgroundNotification(
       `Cooking Finished! 🍗`,
       `Your delicious "${recipe.name}" is ready! Enjoy your meal.`
     );
-    
-    showAlarmBanner();
+    showAlarmBanner(true);
   }
 }
 
@@ -654,9 +641,26 @@ function handleNextStage() {
    ALARM CRITICAL CALLOUT BANNER HANDLERS
    ========================================================================== */
 
-function showAlarmBanner() {
+function showAlarmBanner(isFinal = true) {
   if (state.selectedRecipe) {
-    el.alarmRecipeName.textContent = state.selectedRecipe.name;
+    const headlineEl = el.alarmBanner.querySelector('.alarm-headline');
+    const subEl = el.alarmRecipeName;
+    const buttonEl = el.btnAlarmStop;
+    
+    const recipe = state.selectedRecipe;
+    const currentStage = recipe.stages[state.currentStageIndex];
+    
+    if (isFinal) {
+      if (headlineEl) headlineEl.textContent = "Cooking Complete! 🍗";
+      subEl.textContent = `Your delicious "${recipe.name}" is ready.`;
+      buttonEl.textContent = "DONE / STOP";
+    } else {
+      const nextStage = recipe.stages[state.currentStageIndex + 1];
+      if (headlineEl) headlineEl.textContent = "Stage Complete! 🔔";
+      subEl.textContent = `Finished: "${currentStage.name}". Next: "${nextStage.name}" (${nextStage.temp}°C).`;
+      buttonEl.textContent = "START NEXT STEP";
+    }
+    
     el.alarmBanner.classList.add('active');
   }
 }
@@ -669,7 +673,21 @@ function dismissAlarm() {
   Audio.stopAlarm();
   state.isAlarmActive = false;
   hideAlarmBanner();
-  stopCooking();
+  
+  const recipe = state.selectedRecipe;
+  const nextIndex = state.currentStageIndex + 1;
+  
+  if (recipe && nextIndex < recipe.stages.length) {
+    // Advance to next stage and auto-start
+    state.currentStageIndex = nextIndex;
+    state.stageTimeRemaining = recipe.stages[nextIndex].time;
+    renderTimeline();
+    updateTimerUI();
+    startCooking();
+  } else {
+    // Final stage completed, stop and reset
+    stopCooking();
+  }
 }
 
 /* ==========================================================================
@@ -955,12 +973,19 @@ function updateNotificationUI() {
 function sendBackgroundNotification(title, text) {
   if (state.notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
     try {
-      new Notification(title, {
+      const notification = new Notification(title, {
         body: text,
         icon: './icon.svg',
         tag: 'airfryer-alert',
         requireInteraction: true // Keeps notification visible until clicked/cleared
       });
+      notification.onclick = () => {
+        window.focus();
+        if (state.isAlarmActive) {
+          dismissAlarm();
+        }
+        notification.close();
+      };
     } catch (e) {
       // Fallback if ServiceWorker Registration triggers are required
       navigator.serviceWorker.ready.then(reg => {
