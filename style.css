@@ -93,6 +93,87 @@ body::before {
 /* ==========================================================================
    HEADER & NAVBAR
    ========================================================================== */
+.svg-timer-container {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.svg-timer-container svg {
+  transform: rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+
+.timer-circle-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.03);
+  stroke-width: 12;
+}
+
+.timer-circle-progress {
+  fill: none;
+  stroke: url(#timerGradient);
+  stroke-width: 12;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.35s linear;
+}
+
+.timer-circle-total {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 4;
+}
+
+.timer-circle-total-progress {
+  fill: none;
+  stroke: var(--accent-cherry);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.35s linear;
+}
+
+/* Central Digital Readout */
+.timer-display {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 75%;
+  height: 75%;
+  border-radius: 50%;
+  background: rgba(8, 8, 12, 0.9);
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.timer-stage-name {
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  background: rgba(255, 107, 0, 0.15);
+  border: 1px solid rgba(255, 107, 0, 0.3);
+  padding: 0.25rem 0.8rem;
+  border-radius: 99px;
+  margin-bottom: 0.6rem;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 0 10px rgba(255, 107, 0, 0.1);
+}
+
 header {
   display: flex;
   align-items: center;
@@ -379,80 +460,6 @@ main {
   z-index: 0;
 }
 
-.svg-timer-container {
-  position: relative;
-  width: 320px;
-  height: 320px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1;
-}
-
-.svg-timer-container svg {
-  transform: rotate(-90deg);
-  width: 100%;
-  height: 100%;
-}
-
-.timer-circle-bg {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.03);
-  stroke-width: 12;
-}
-
-.timer-circle-progress {
-  fill: none;
-  stroke: url(#timerGradient);
-  stroke-width: 12;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.35s linear;
-}
-
-.timer-circle-total {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.06);
-  stroke-width: 4;
-}
-
-.timer-circle-total-progress {
-  fill: none;
-  stroke: var(--accent-cherry);
-  stroke-width: 4;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.35s linear;
-}
-
-/* Central Digital Readout */
-.timer-display {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 240px;
-  height: 240px;
-  border-radius: 50%;
-  background: rgba(8, 8, 12, 0.85);
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.timer-stage-name {
-  font-size: 0.8rem;
-  font-weight: 800;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--accent-orange);
-  margin-bottom: 0.25rem;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 .timer-time {
   font-size: 3.75rem;
@@ -684,6 +691,25 @@ main {
 
 /* Mobile Timeline Layout Tweak */
 @media (max-width: 768px) {
+  .app-container {
+    padding: 1rem;
+    gap: 1.25rem;
+  }
+  header {
+    padding: 1rem 1.25rem;
+  }
+  .svg-timer-container {
+    max-width: 280px;
+  }
+  .timer-time {
+    font-size: 3rem;
+  }
+  .timer-stage-name {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+    margin-bottom: 0.4rem;
+  }
+  
   .timeline-track {
     flex-direction: column;
     align-items: stretch;
