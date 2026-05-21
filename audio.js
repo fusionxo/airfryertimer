@@ -50,6 +50,7 @@ export function setMuted(muteState) {
   isMuted = muteState;
   if (isMuted) {
     stopAlarm();
+    stopBackgroundAudioLoop();
   } else {
     initAudio();
   }
@@ -258,4 +259,49 @@ export function stopAlarm() {
     } catch (e) {}
   });
   alarmOscillators = [];
+}
+
+let backgroundOscillator = null;
+let backgroundGain = null;
+
+/**
+ * Starts a sub-audible background audio loop to keep the browser tab awake on mobile.
+ * Uses an extremely low frequency (1 Hz) and volume (0.0001) that is completely silent.
+ */
+export function startBackgroundAudioLoop() {
+  if (isMuted) return;
+  initAudio();
+  if (!audioCtx) return;
+  
+  try {
+    if (backgroundOscillator) return;
+    
+    backgroundOscillator = audioCtx.createOscillator();
+    backgroundGain = audioCtx.createGain();
+    
+    backgroundOscillator.frequency.setValueAtTime(1, audioCtx.currentTime); // 1Hz - ultra sub-audible
+    backgroundGain.gain.setValueAtTime(0.0001, audioCtx.currentTime); // near zero volume
+    
+    backgroundOscillator.connect(backgroundGain);
+    backgroundGain.connect(audioCtx.destination);
+    
+    backgroundOscillator.start();
+    console.log("Background Audio Keep-Awake started");
+  } catch (e) {
+    console.error("Failed to start background keep-awake audio loop", e);
+  }
+}
+
+/**
+ * Stops the background keep-awake audio loop.
+ */
+export function stopBackgroundAudioLoop() {
+  if (backgroundOscillator) {
+    try {
+      backgroundOscillator.stop();
+    } catch (e) {}
+    backgroundOscillator = null;
+    backgroundGain = null;
+    console.log("Background Audio Keep-Awake stopped");
+  }
 }

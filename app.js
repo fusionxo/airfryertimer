@@ -66,6 +66,7 @@ let state = {
   // Timer Running Engine States
   currentStageIndex: 0,
   stageTimeRemaining: 0, // In seconds
+  stageEndTime: 0,       // Absolute epoch timestamp (ms) when active stage ends
   totalDuration: 0,      // Cumulative seconds of selected recipe
   totalElapsed: 0,       // Total seconds completed in the current run
   
@@ -77,6 +78,10 @@ let state = {
   isMuted: false,
   notificationsEnabled: false
 };
+
+// Background Worker & Wake Lock handlers
+let timerWorker = null;
+let wakeLock = null;
 
 // SVG Geometry Values
 const INNER_RING_PERIMETER = 2 * Math.PI * 140; // R = 140 -> 879.6
@@ -141,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadPreferences();
   bindEvents();
   registerServiceWorker();
+  initTimerWorker();
   
   // Select first recipe by default to load the screen
   if (state.recipes.length > 0) {
@@ -494,12 +500,26 @@ function startCooking() {
   if (!state.isPlaying) {
     state.isPlaying = true;
     
+    // Calculate absolute finish epoch for the active stage
+    state.stageEndTime = Date.now() + (state.stageTimeRemaining * 1000);
+    
     // Play warm starting sound synthesizers
     if (state.totalElapsed === 0) {
       Audio.playStartChime();
     }
     
-    state.timerIntervalId = setInterval(tick, 1000);
+    // Start silent audio keep-awake channel to block browser suspension
+    Audio.startBackgroundAudioLoop();
+    
+    // Request Screen Wake Lock to prevent screen sleep
+    requestWakeLock();
+    
+    // Start timer execution (prefer Web Worker, fall back to setInterval)
+    if (timerWorker) {
+      timerWorker.postMessage({ action: 'start' });
+    } else {
+      state.timerIntervalId = setInterval(tick, 1000);
+    }
     
     updatePlaybackControlButtons();
     updateTimerUI();
@@ -515,8 +535,20 @@ function startCooking() {
 function pauseCooking() {
   if (state.isPlaying) {
     state.isPlaying = false;
-    clearInterval(state.timerIntervalId);
-    state.timerIntervalId = null;
+    
+    // Lock in final precise remaining seconds before stopping
+    state.stageTimeRemaining = Math.max(0, Math.ceil((state.stageEndTime - Date.now()) / 1000));
+    
+    // Halt background loops and release wake locks
+    Audio.stopBackgroundAudioLoop();
+    releaseWakeLock();
+    
+    if (timerWorker) {
+      timerWorker.postMessage({ action: 'stop' });
+    } else if (state.timerIntervalId) {
+      clearInterval(state.timerIntervalId);
+      state.timerIntervalId = null;
+    }
     
     updatePlaybackControlButtons();
     updateTimerUI();
@@ -537,17 +569,15 @@ function stopCooking() {
  * Timer tick execution executed every 1000ms.
  */
 function tick() {
-  if (state.stageTimeRemaining > 0) {
-    state.stageTimeRemaining--;
-    state.totalElapsed++;
-    
-    // Optional extremely quiet audio pulse on timer ticks to make UI feel alive
-    // Audio.playTickSound();
-  }
+  const current = Date.now();
+  const remaining = Math.max(0, Math.ceil((state.stageEndTime - current) / 1000));
+  state.stageTimeRemaining = remaining;
+  
+  // Recompute total elapsed based on current stage remaining
+  const previousStagesDuration = state.selectedRecipe.stages.slice(0, state.currentStageIndex).reduce((sum, s) => sum + s.time, 0);
+  state.totalElapsed = previousStagesDuration + (state.selectedRecipe.stages[state.currentStageIndex].time - remaining);
   
   updateTimerUI();
-  
-  // Sync cumulative visual texts
   el.totalElapsedVal.textContent = formatMinutesSeconds(state.totalElapsed);
   
   // Catch stage completions
@@ -1028,6 +1058,9 @@ function bindEvents() {
     }
   });
 
+  // Bind visibility change event for passive sync
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+
   // Global window exporter to make standard onclick bindings accessible
   window.app = {
     handleRecipeClick: selectRecipe,
@@ -1040,6 +1073,91 @@ function bindEvents() {
 /* ==========================================================================
    SUPPORT UTILITIES
    ========================================================================== */
+
+/* ==========================================================================
+   BACKGROUND ENGINE WORKER, VISIBILITY & WAKE LOCK HELPERS
+   ========================================================================== */
+
+/**
+ * Initializes the background Web Worker countdown.
+ */
+function initTimerWorker() {
+  if (window.Worker) {
+    try {
+      timerWorker = new Worker('./timer-worker.js');
+      timerWorker.onmessage = function(e) {
+        if (e.data.type === 'tick') {
+          tick();
+        }
+      };
+      console.log('SW Web Worker: Initialized successfully');
+    } catch (e) {
+      console.error("Failed to load Web Worker, falling back to standard interval", e);
+    }
+  }
+}
+
+/**
+ * Handles browser tab visibility shifts to force sync countdown drifts.
+ */
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    if (state.isPlaying) {
+      // Re-request Screen Wake Lock
+      requestWakeLock();
+      
+      // Calculate real remaining seconds from system epoch clock
+      const current = Date.now();
+      const remaining = Math.max(0, Math.ceil((state.stageEndTime - current) / 1000));
+      
+      state.stageTimeRemaining = remaining;
+      
+      // Recompute total elapsed based on current stage remaining
+      const previousStagesDuration = state.selectedRecipe.stages.slice(0, state.currentStageIndex).reduce((sum, s) => sum + s.time, 0);
+      state.totalElapsed = previousStagesDuration + (state.selectedRecipe.stages[state.currentStageIndex].time - remaining);
+      
+      updateTimerUI();
+      el.totalElapsedVal.textContent = formatMinutesSeconds(state.totalElapsed);
+      
+      if (state.stageTimeRemaining <= 0) {
+        // Trigger completed stage action immediately
+        triggerStageTransition();
+      }
+    }
+  }
+}
+
+/**
+ * Requests the Screen Wake Lock API to prevent mobile lock screen sleep.
+ */
+async function requestWakeLock() {
+  if ('wakeLock' in navigator) {
+    try {
+      if (wakeLock) {
+        await wakeLock.release();
+        wakeLock = null;
+      }
+      wakeLock = await navigator.wakeLock.request('screen');
+      console.log('Screen Wake Lock: Active');
+    } catch (err) {
+      console.warn(`Screen Wake Lock request failed: ${err.message}`);
+    }
+  }
+}
+
+/**
+ * Cleanly releases the active Screen Wake Lock.
+ */
+async function releaseWakeLock() {
+  if (wakeLock !== null) {
+    try {
+      await wakeLock.release();
+    } catch (err) {
+      console.error('Failed to release Screen Wake Lock', err);
+    }
+    wakeLock = null;
+  }
+}
 
 /**
  * Formats time from raw seconds representation into standard MM:SS clock visual.

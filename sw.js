@@ -4,13 +4,14 @@
  * Provides full offline cooking timer capabilities by caching local assets.
  */
 
-const CACHE_NAME = 'airfryer-timer-v1';
+const CACHE_NAME = 'airfryer-timer-v2';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './audio.js',
+  './timer-worker.js',
   './manifest.json',
   './icon.svg'
 ];
